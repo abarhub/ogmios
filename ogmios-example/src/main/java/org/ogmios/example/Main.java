@@ -14,12 +14,12 @@ public class Main {
     public static void main(String[] args) throws ConfigurationException {
         LOGGER.info("Hello");
 
-        Configuration configuration=OgmiosConfiguration.getConfiguration("aaa");
+        Configuration configuration = OgmiosConfiguration.getConfiguration("aaa");
 
         Preconditions.checkNotNull(configuration);
-        LOGGER.info("key1:{}",configuration.get("key1"));
-        LOGGER.info("key2:{}",configuration.get("key2"));
-        LOGGER.info("key0:{}",configuration.get("key0"));
+        LOGGER.info("key1:{}", configuration.get("key1"));
+        LOGGER.info("key2:{}", configuration.get("key2"));
+        LOGGER.info("key0:{}", configuration.get("key0"));
 
         LOGGER.info("Bye");
     }

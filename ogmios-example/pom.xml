@@ -5,6 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <properties>
         <logback-classic.version>1.2.5</logback-classic.version>
+        <logback-classic-ogmios.version>1.2.6-SNAPSHOT</logback-classic-ogmios.version>
         <guava.version>30.1.1-jre</guava.version>
     </properties>
 
@@ -22,10 +23,15 @@
             <artifactId>ogmios-provider</artifactId>
             <version>${project.version}</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>ch.qos.logback</groupId>-->
+<!--            <artifactId>logback-classic</artifactId>-->
+<!--            <version>${logback-classic.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback-classic.version}</version>
+            <artifactId>logback-classic-ogmios</artifactId>
+            <version>${logback-classic-ogmios.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
