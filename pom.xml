@@ -17,6 +17,7 @@
     <modules>
         <module>ogmios-api</module>
         <module>ogmios-provider</module>
+        <module>ogmios-example</module>
     </modules>
 
 </project>

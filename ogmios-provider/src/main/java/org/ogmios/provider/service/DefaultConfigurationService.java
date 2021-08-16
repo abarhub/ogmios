@@ -3,6 +3,8 @@ package org.ogmios.provider.service;
 import org.ogmios.api.config.Configuration;
 import org.ogmios.api.config.SecretValue;
 import org.ogmios.api.exception.ConfigurationException;
+import org.ogmios.api.log.LogLevel;
+import org.ogmios.api.log.Logger;
 import org.ogmios.provider.domain.ConfigData;
 import org.ogmios.provider.utils.Constant;
 import org.ogmios.provider.utils.StringUtils;
@@ -10,6 +12,8 @@ import org.ogmios.provider.utils.StringUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -19,7 +23,9 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class DefaultConfiguration implements Configuration {
+import static org.ogmios.provider.utils.Constant.CLASSPATH_PROTOCOL;
+
+public class DefaultConfigurationService implements Configuration {
 
     private Map<String, String> metaConfiguration;
     private ConfigData configData = new ConfigData();
@@ -48,7 +54,7 @@ public class DefaultConfiguration implements Configuration {
             try {
                 return Optional.of(Files.newBufferedReader(p));
             } catch (IOException e) {
-                throw new ConfigurationException("Error for read file " + p, e);
+                throw new ConfigurationException("Error for read " + p, e);
             }
         }
     }
@@ -68,13 +74,7 @@ public class DefaultConfiguration implements Configuration {
         }
 
         metaConfiguration = new ConcurrentHashMap<>();
-        for (Object key : prop.keySet()) {
-            if (key instanceof String) {
-                String ketString = (String) key;
-                String value = prop.getProperty(ketString);
-                metaConfiguration.put(ketString, value);
-            }
-        }
+        addProperties(prop, metaConfiguration);
 
         List<String> dirList = null;
         if (metaConfiguration.containsKey(Constant.PARAM_OGMIOS_DIRECTORIES)) {
@@ -84,6 +84,7 @@ public class DefaultConfiguration implements Configuration {
             }
         }
 
+        Logger.log(LogLevel.DEBUG, "config directory and file is %s", dirList);
         if (dirList != null) {
             for (String dir : dirList) {
                 process(dir, configData);
@@ -92,22 +93,46 @@ public class DefaultConfiguration implements Configuration {
     }
 
     private void process(String dir, ConfigData configData) throws ConfigurationException {
-        Path p = Paths.get(dir);
-        if (Files.exists(p)) {
-            if (p.endsWith(".properties")) {
+        Path p=null;
+        if (dir.startsWith(CLASSPATH_PROTOCOL)) {
+            try {
+                String filename = dir.substring(CLASSPATH_PROTOCOL.length());
+                URL url = ClassLoader.getSystemResource(filename);
+                Logger.log(LogLevel.DEBUG, "url:%s (%s)", url, url.toURI());
+                Properties properties = new Properties();
+                try (InputStream in = url.openStream()) {
+                    properties.load(in);
+                }
+                addProperties(properties, configData.getConfiguration());
+            } catch (URISyntaxException | IOException e) {
+                throw new ConfigurationException("Error for path " + dir, e);
+            }
+        } else {
+            p = Paths.get(dir);
+        }
+        if (p != null && Files.exists(p)) {
+            if (endWith(p, ".properties")) {
                 Properties properties = new Properties();
                 readFile(properties, p);
-                for (Object key : properties.keySet()) {
-                    if (key instanceof String) {
-                        String ketString = (String) key;
-                        String value = properties.getProperty(ketString);
-                        configData.getConfiguration().put(ketString, value);
-                    }
-                }
-            } else if (p.endsWith(".xml")) {
+                addProperties(properties, configData.getConfiguration());
+            } else if (endWith(p, ".xml")) {
                 configData.getFiles().put(p.getFileName().toString(), p);
             }
         }
+    }
+
+    private void addProperties(Properties properties, Map<String, String> configuration) {
+        for (Object key : properties.keySet()) {
+            if (key instanceof String) {
+                String ketString = (String) key;
+                String value = properties.getProperty(ketString);
+                configuration.put(ketString, value);
+            }
+        }
+    }
+
+    private boolean endWith(Path p, String end) {
+        return !end.isEmpty() && p.getFileName().toString().endsWith(end);
     }
 
     private Properties loadFromSystemProperties() throws ConfigurationException {
@@ -115,6 +140,7 @@ public class DefaultConfiguration implements Configuration {
         if (!StringUtils.isEmpty(value)) {
             Path path = Paths.get(value);
             if (Files.exists(path)) {
+                Logger.log(LogLevel.INFO, "find file %s from system properties", path);
                 Properties properties = new Properties();
                 readFile(properties, path);
                 return properties;
@@ -127,11 +153,13 @@ public class DefaultConfiguration implements Configuration {
 
     private Properties loadFromClasspath() throws ConfigurationException {
         Properties prop;
-        try (InputStream is = DefaultConfiguration.class.getClassLoader().getResourceAsStream(Constant.OGMIOS_PROPERTIES)) {
+        try (InputStream is = DefaultConfigurationService.class.getClassLoader().getResourceAsStream(Constant.OGMIOS_PROPERTIES)) {
 
             if (is == null) {
                 return null;
             }
+
+            Logger.log(LogLevel.INFO, "find file %s in classpath", Constant.OGMIOS_PROPERTIES);
 
             prop = new Properties();
             prop.load(is);
@@ -146,12 +174,14 @@ public class DefaultConfiguration implements Configuration {
         Path path;
         path = Paths.get("./" + Constant.OGMIOS_PROPERTIES);
         if (Files.exists(path)) {
+            Logger.log(LogLevel.INFO, "find file %s from path", path);
             Properties properties = new Properties();
             readFile(properties, path);
             return properties;
         } else {
             path = Paths.get("./config/" + Constant.OGMIOS_PROPERTIES);
             if (Files.exists(path)) {
+                Logger.log(LogLevel.INFO, "find file %s from path", path);
                 Properties properties = new Properties();
                 readFile(properties, path);
                 return properties;

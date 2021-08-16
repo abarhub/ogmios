@@ -1,2 +1,5 @@
 /ogmios.iml
 /.idea/*
+ogmios-api/target/
+ogmios-example/target/
+ogmios-provider/target/

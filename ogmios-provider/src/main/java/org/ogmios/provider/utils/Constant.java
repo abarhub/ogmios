@@ -10,4 +10,6 @@ public class Constant {
 
     public static final String COMMA=",";
 
+    public static final String CLASSPATH_PROTOCOL="classpath:";
+
 }

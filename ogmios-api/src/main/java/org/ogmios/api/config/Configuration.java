@@ -3,6 +3,7 @@ package org.ogmios.api.config;
 import org.ogmios.api.exception.ConfigurationException;
 
 import java.io.Reader;
+import java.nio.file.Path;
 import java.util.Optional;
 
 public interface Configuration {
